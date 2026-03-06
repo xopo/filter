@@ -1,8 +1,6 @@
 package main
 
 import "core:fmt"
-import "core:log"
-import "core:strings"
 import "core:testing"
 
 test1 := `Running tests...
@@ -51,6 +49,7 @@ Test_Case :: struct {
 test_pass_coloring2 :: proc(t: ^testing.T) {
 	test_cases := []Test_Case {
 		{"bla", ""},
+		{"PASS", fmt.tprintf("%sPASS%s", GREEN, RESET)},
 		{
 			"PASS  tests/math/add.test.js",
 			fmt.tprintf("%sPASS%s  tests/math/add.test.js", GREEN, RESET),

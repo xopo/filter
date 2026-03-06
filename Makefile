@@ -1,7 +1,8 @@
 odin=odin
 src=.
-out=filter
-FLAGS=-o:size -vet -strict-style
+out=dist
+bin=filter
+FLAGS=-o:size -vet -strict-style -out:${out}/${bin}
 
 .PHONY: all run clean test
 
@@ -10,7 +11,7 @@ all:
 	$(odin) build $(src) $(FLAGS)
 
 run: all 
-	./$(out)/app
+	./$(out)/${bin}
 
 test:
 	$(odin) test $(src) $(FLAGS)
