@@ -37,6 +37,7 @@ combineOptions :: proc(first, second: []string) -> []string {
 	if len(first) == 0 || first == nil {
 		return second
 	}
+
 	if len(second) == 0 || second == nil {
 		return first
 	}

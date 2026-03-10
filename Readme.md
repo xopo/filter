@@ -4,8 +4,10 @@ A CLI tool to colorize and filter piped input.
 
 ## Install
 
+```zsh
 brew tap xopo/filter
 brew install filter
+```
 
 ## Features
 
