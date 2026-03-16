@@ -20,15 +20,16 @@ main :: proc() {
 	bufio.scanner_init(&s, os.to_stream(os.stdin))
 	defer bufio.scanner_destroy(&s)
 
-	started := false
+	summary_started: bool
 
+	fmt.println(strings.repeat("=", 50))
 	for bufio.scan(&s) {
 		line := bufio.scanner_text(&s)
 
-		new_line := format_line(line, &started, opt)
-		if new_line != "" {
-			fmt.println(new_line)
-			delete(new_line)
+		formated_line := format_line(line, &summary_started, opt)
+		if formated_line != "" {
+			fmt.println(formated_line)
+			delete(formated_line)
 		}
 	}
 }
@@ -54,22 +55,32 @@ combineOptions :: proc(first, second: []string) -> []string {
 	return result[:]
 }
 
-format_line :: proc(line: string, started: ^bool, opt: []string) -> string {
+
+format_line :: proc(line: string, summary_started: ^bool, opt: []string) -> string {
 	if strings.contains(line, "PASS") {
+		reset_started(summary_started, false)
 		return check_and_replace(line, "PASS", green)
 	}
 
 	if strings.contains(line, "FAIL") {
+		reset_started(summary_started, false)
 		return check_and_replace(line, "FAIL", red)
-
 	}
+
+	if strings.contains(line, "WARN") {
+		reset_started(summary_started, false)
+		return check_and_replace(line, "WARN", yellow)
+	}
+
 
 	upd_line: string
 
-	if (strings.contains(line, "passed") || strings.contains(line, "failed")) {
-		if (!started^) {
+	if (strings.contains(line, "passed") ||
+		   strings.contains(line, "failed") ||
+		   strings.contains(line, "warning")) {
+		if (!summary_started^) {
+			summary_started^ = true
 			fmt.println()
-			started^ = true
 		}
 
 		if strings.contains(line, "failed") {
@@ -77,9 +88,11 @@ format_line :: proc(line: string, started: ^bool, opt: []string) -> string {
 		}
 
 		if strings.contains(line, "passed") {
-			old := upd_line
+			old := len(upd_line) > 0 ? upd_line : line
 			upd_line = check_and_replace(old, "passed", green)
-			delete(old)
+			if len(upd_line) > 0 && old != line {
+				delete(old)
+			}
 		}
 
 
@@ -88,29 +101,36 @@ format_line :: proc(line: string, started: ^bool, opt: []string) -> string {
 
 	for o in opt {
 		if strings.contains(line, o) {
-			fmt.printf("\t%s\n", check_and_replace(line, o, yellow_bold))
+			return fmt.aprintf("%s", check_and_replace(line, o, yellow_bold))
 		}
 	}
-
 
 	return ""
 }
 
+reset_started :: proc(started: ^bool, value: bool) {
+	if started^ != value {
+		fmt.println()
+		started^ = value
+	}
+}
+
 check_and_replace :: proc(
 	line, target: string,
-	cb: proc(inp: string, allocator := context.allocator) -> string,
+	colorize_callback: proc(inp: string, allocator := context.allocator) -> string,
 ) -> string {
 	split := strings.split(line, target)
 	defer delete(split)
-	last_part := ""
+
+	last_part: string
+
 	if len(split) > 1 {
 		last_part = split[1]
 	}
 
-	color_target := cb(target)
+	color_target := colorize_callback(target)
 	defer delete(color_target)
 
-	// return fmt.aprintf("%s%s%s", split[0], color_target, split[1], allocator = context.allocator)
 	return strings.join([]string{split[0], color_target, last_part}, "")
 }
 
