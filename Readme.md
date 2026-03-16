@@ -1,6 +1,9 @@
 # filter
 
 A CLI tool to colorize and filter piped input.
+<img width="1073" height="579" alt="Screenshot 2026-03-16 at 22 37 24" src="https://github.com/user-attachments/assets/0fffbc6b-e82e-4468-a968-eba77bf796fe" />
+
+
 
 ## Install
 
