@@ -1,9 +1,8 @@
 # filter
 
-A CLI tool to colorize and filter piped input.
+A CLI tool to colorize and filter piped input. Good for large tests (like monorepos) when you want to focus on results not boilerplate.
 
 <img width="976" height="438" alt="Screenshot 2026-03-17 at 08 15 22" src="https://github.com/user-attachments/assets/ae4a1375-6f32-4d3d-b5c4-a4cc7a8eb07d" />
-
 
 ## Install
 
