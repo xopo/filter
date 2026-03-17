@@ -89,8 +89,9 @@ format_line :: proc(line: string, summary_started: ^bool, opt: []string) -> stri
 
 		if strings.contains(line, "passed") {
 			old := len(upd_line) > 0 ? upd_line : line
+			should_delete_old := len(upd_line) > 0
 			upd_line = check_and_replace(old, "passed", green)
-			if len(upd_line) > 0 && old != line {
+			if should_delete_old {
 				delete(old)
 			}
 		}
@@ -105,7 +106,7 @@ format_line :: proc(line: string, summary_started: ^bool, opt: []string) -> stri
 		}
 	}
 
-	return ""
+	return summary_started^ ? strings.clone(line) : ""
 }
 
 reset_started :: proc(started: ^bool, value: bool) {
