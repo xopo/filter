@@ -15,6 +15,7 @@ main :: proc() {
 	}
 
 	opt := combineOptions(user_opt, default_opt[:])
+	all_opt := combineOptions(opt, default_check[:])
 
 	s: bufio.Scanner
 	bufio.scanner_init(&s, os.to_stream(os.stdin))
@@ -26,12 +27,36 @@ main :: proc() {
 	for bufio.scan(&s) {
 		line := bufio.scanner_text(&s)
 
-		formated_line := format_line(line, &summary_started, opt)
+		lower_line := strings.to_lower(line)
+		delete(lower_line)
+		if !should_format(lower_line, all_opt) {
+			fmt.printf("\r%s2K%s", ESC, line)
+			continue
+		}
+
+		formated_line := format_line(strings.trim_space(line), &summary_started, opt)
+
+
 		if formated_line != "" {
 			fmt.println(formated_line)
 			delete(formated_line)
 		}
 	}
+}
+
+should_format :: proc(line: string, opt: []string) -> bool {
+	for o in opt {
+		if o == line {
+			return true
+		}
+		start_opt := fmt.aprintf("%s ", o)
+		if strings.contains(line, start_opt) {
+			delete(start_opt)
+			return true
+		}
+	}
+
+	return false
 }
 
 combineOptions :: proc(first, second: []string) -> []string {
@@ -68,16 +93,13 @@ format_line :: proc(line: string, summary_started: ^bool, opt: []string) -> stri
 	}
 
 	if strings.contains(line, "WARN") {
-		reset_started(summary_started, false)
 		return check_and_replace(line, "WARN", yellow)
 	}
 
 
 	upd_line: string
 
-	if (strings.contains(line, "passed") ||
-		   strings.contains(line, "failed") ||
-		   strings.contains(line, "warning")) {
+	if strings.contains(line, "passed") || strings.contains(line, "failed") {
 		if (!summary_started^) {
 			summary_started^ = true
 			fmt.println()
@@ -104,6 +126,11 @@ format_line :: proc(line: string, summary_started: ^bool, opt: []string) -> stri
 		if strings.contains(line, o) {
 			return fmt.aprintf("%s", check_and_replace(line, o, yellow_bold))
 		}
+	}
+
+	if summary_started^ == true && (len(line) == 0 || strings.contains(line, "Time")) {
+		fmt.println(line)
+		reset_started(summary_started, false)
 	}
 
 	return summary_started^ ? strings.clone(line) : ""

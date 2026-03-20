@@ -1,4 +1,6 @@
 Running tests...
+[madge]... warning about some file 
+Start testing
 
 PASS  tests/math/add.test.js
 │ ✓ add(1, 2) returns 3 (3 ms)
