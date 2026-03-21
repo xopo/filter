@@ -59,10 +59,9 @@ test_pass_coloring2 :: proc(t: ^testing.T) {
 			fmt.tprintf("%sFAIL%s  tests/user/login.test.js", RED, RESET),
 		},
 		{"1 passed", fmt.tprintf("1 %spassed%s", GREEN, RESET)},
-		{"2 failed", fmt.tprintf("2 %sfailed%s", RED, RESET)},
+		{"1 failed", fmt.tprintf("1 %sfailed%s", RED, RESET)},
 		{"    Expected: true", fmt.tprintf("    %sExpected%s: true", YELLOW, RESET)},
-		{"    Received: false", fmt.tprintf("    %sReceived%s: true", YELLOW, RESET)},
-		{"", fmt.tprintf("2 %sfailed%s", RED, RESET)},
+		{"    Received: false", fmt.tprintf("    %sReceived%s: false", YELLOW, RESET)},
 		{
 			"Test Suites: 1 failed, 3 passed, 4 total",
 			fmt.tprintf(

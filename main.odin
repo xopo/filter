@@ -170,11 +170,12 @@ format_line :: proc(
 		case "warning", "warn":
 			strings.write_string(
 				&sf,
-				fmt.aprintf("%s%s%s", yellow, word, RESET, allocator = allocator),
+				fmt.aprintf("%s%s%s", YELLOW, word, RESET, allocator = allocator),
 			)
-			if lower_word == "failed" {
+			if lower_word == "warning" {
 				summary_started^ = true
 			}
+			break
 		case:
 			optional := optional_word(opt, lower_word)
 
@@ -183,6 +184,36 @@ format_line :: proc(
 					&sf,
 					fmt.aprintf("%s%s%s", YELLOW, word, RESET, allocator = allocator),
 				)
+				break
+			}
+			if strings.has_prefix(lower_word, "expected:") ||
+			   strings.has_prefix(lower_word, "expected") {
+				word_to_color := word
+				if strings.has_suffix(word, ":") {
+					word_to_color = word[:len(word) - 1]
+				}
+				strings.write_string(
+					&sf,
+					fmt.aprintf("%s%s%s", YELLOW, word_to_color, RESET, allocator = allocator),
+				)
+				if strings.has_suffix(word, ":") {
+					strings.write_string(&sf, ":")
+				}
+				break
+			}
+			if strings.has_prefix(lower_word, "received:") ||
+			   strings.has_prefix(lower_word, "received") {
+				word_to_color := word
+				if strings.has_suffix(word, ":") {
+					word_to_color = word[:len(word) - 1]
+				}
+				strings.write_string(
+					&sf,
+					fmt.aprintf("%s%s%s", YELLOW, word_to_color, RESET, allocator = allocator),
+				)
+				if strings.has_suffix(word, ":") {
+					strings.write_string(&sf, ":")
+				}
 				break
 			}
 			if (strings.contains(word, "passed")) {
@@ -215,7 +246,6 @@ format_line :: proc(
 
 		delete(lower_word)
 	}
-
 
 	delete(split)
 	return strings.to_string(sf)
