@@ -47,17 +47,22 @@ Test_Case :: struct {
 
 @(test)
 test_pass_coloring2 :: proc(t: ^testing.T) {
+
 	test_cases := []Test_Case {
-		{"bla", ""},
 		{"PASS", fmt.tprintf("%sPASS%s", GREEN, RESET)},
 		{
-			"PASS  tests/math/add.test.js",
-			fmt.tprintf("%sPASS%s  tests/math/add.test.js", GREEN, RESET),
+			"PASS tests/math/add.test.js",
+			fmt.tprintf("%sPASS%s tests/math/add.test.js", GREEN, RESET),
 		},
 		{
 			"FAIL  tests/user/login.test.js",
 			fmt.tprintf("%sFAIL%s  tests/user/login.test.js", RED, RESET),
 		},
+		{"1 passed", fmt.tprintf("1 %spassed%s", GREEN, RESET)},
+		{"2 failed", fmt.tprintf("2 %sfailed%s", RED, RESET)},
+		{"    Expected: true", fmt.tprintf("    %sExpected%s: true", YELLOW, RESET)},
+		{"    Received: false", fmt.tprintf("    %sReceived%s: true", YELLOW, RESET)},
+		{"", fmt.tprintf("2 %sfailed%s", RED, RESET)},
 		{
 			"Test Suites: 1 failed, 3 passed, 4 total",
 			fmt.tprintf(

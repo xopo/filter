@@ -1,7 +1,7 @@
 odin=odin
 src=.
 out=dist
-bin=filter
+bin=filter_out
 FLAGS=-o:size -vet -strict-style -out:${out}/${bin}
 
 .PHONY: all run clean test

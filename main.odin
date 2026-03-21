@@ -14,28 +14,42 @@ main :: proc() {
 		return
 	}
 
+	allocator := context.allocator
 	opt := combineOptions(user_opt, default_opt[:])
-	all_opt := combineOptions(opt, default_check[:])
+	all_opt := combineOptions(opt, default_check[:], allocator = allocator)
+	defer delete(all_opt)
 
 	s: bufio.Scanner
 	bufio.scanner_init(&s, os.to_stream(os.stdin))
 	defer bufio.scanner_destroy(&s)
 
 	summary_started: bool
+	once: bool
 
-	fmt.println(strings.repeat("=", 50))
 	for bufio.scan(&s) {
 		line := bufio.scanner_text(&s)
 
 		lower_line := strings.to_lower(line)
-		delete(lower_line)
 		if !should_format(lower_line, all_opt) {
-			fmt.printf("\r%s2K%s", ESC, line)
+			if strings.contains(line, end) {
+				fmt.printf("\n%s\n%s\n\n", line, strings.repeat("-", 50))
+				once = false
+				summary_started = false
+			} else {
+				fmt.printf("\r%s2K%s", ESC, line)
+			}
+
+			delete(lower_line)
 			continue
 		}
 
 		formated_line := format_line(strings.trim_space(line), &summary_started, opt)
 
+		// separator for summary
+		if once == false && summary_started == true {
+			once = true
+			fmt.printf("\n%s\n", strings.repeat("-", 50))
+		}
 
 		if formated_line != "" {
 			fmt.println(formated_line)
@@ -45,13 +59,22 @@ main :: proc() {
 }
 
 should_format :: proc(line: string, opt: []string) -> bool {
+	// fmt.println("check line ", line)
 	for o in opt {
+		// if the line is exactly one word
 		if o == line {
 			return true
 		}
+
 		start_opt := fmt.aprintf("%s ", o)
 		if strings.contains(line, start_opt) {
 			delete(start_opt)
+			return true
+		}
+
+		end_opt := fmt.aprintf(" %s", o)
+		if strings.contains(line, end_opt) {
+			delete(end_opt)
 			return true
 		}
 	}
@@ -59,7 +82,7 @@ should_format :: proc(line: string, opt: []string) -> bool {
 	return false
 }
 
-combineOptions :: proc(first, second: []string) -> []string {
+combineOptions :: proc(first, second: []string, allocator := context.temp_allocator) -> []string {
 	if len(first) == 0 || first == nil {
 		return second
 	}
@@ -68,99 +91,136 @@ combineOptions :: proc(first, second: []string) -> []string {
 		return first
 	}
 
-	result: [dynamic]string
-	for s in second {
-		append(&result, s)
+	result := make([]string, len(first) + len(second), allocator)
+	for s, i in second {
+		result[i] = s
 	}
 
-	for s in first {
-		append(&result, s)
+	for s, i in first {
+		result[i + len(second)] = s
 	}
 
 	return result[:]
 }
 
-
-format_line :: proc(line: string, summary_started: ^bool, opt: []string) -> string {
-	if strings.contains(line, "PASS") {
-		reset_started(summary_started, false)
-		return check_and_replace(line, "PASS", green)
+optional_word :: proc(opt: []string, word: string) -> string {
+	if len(opt) == 0 || len(word) == 0 {
+		return ""
 	}
-
-	if strings.contains(line, "FAIL") {
-		reset_started(summary_started, false)
-		return check_and_replace(line, "FAIL", red)
-	}
-
-	if strings.contains(line, "WARN") {
-		return check_and_replace(line, "WARN", yellow)
-	}
-
-
-	upd_line: string
-
-	if strings.contains(line, "passed") || strings.contains(line, "failed") {
-		if (!summary_started^) {
-			summary_started^ = true
-			fmt.println()
-		}
-
-		if strings.contains(line, "failed") {
-			upd_line = check_and_replace(line, "failed", red)
-		}
-
-		if strings.contains(line, "passed") {
-			old := len(upd_line) > 0 ? upd_line : line
-			should_delete_old := len(upd_line) > 0
-			upd_line = check_and_replace(old, "passed", green)
-			if should_delete_old {
-				delete(old)
-			}
-		}
-
-
-		return upd_line
-	}
-
 	for o in opt {
-		if strings.contains(line, o) {
-			return fmt.aprintf("%s", check_and_replace(line, o, yellow_bold))
+		if o == word {
+			return word
 		}
 	}
-
-	if summary_started^ == true && (len(line) == 0 || strings.contains(line, "Time")) {
-		fmt.println(line)
-		reset_started(summary_started, false)
+	for o in opt {
+		if strings.contains(word, o) {
+			return word
+		}
 	}
-
-	return summary_started^ ? strings.clone(line) : ""
+	return ""
 }
 
-reset_started :: proc(started: ^bool, value: bool) {
-	if started^ != value {
-		fmt.println()
-		started^ = value
+cached := map[string]string{}
+
+color_word :: proc(w: string, color: string) -> string {
+	result, found := cached[w]
+	if found {
+		return result
 	}
+	colored := fmt.aprintf("%s%s%s", color, w, RESET)
+	cached[w] = colored
+	return cached[w]
 }
 
-check_and_replace :: proc(
-	line, target: string,
-	colorize_callback: proc(inp: string, allocator := context.allocator) -> string,
+format_line :: proc(
+	line: string,
+	summary_started: ^bool,
+	opt: []string,
+	allocator := context.temp_allocator,
 ) -> string {
-	split := strings.split(line, target)
-	defer delete(split)
+	split := strings.split(line, " ")
+	sf := strings.builder_make()
 
-	last_part: string
+	first := true
+	for word in split {
+		lower_word := strings.to_lower(word)
+		if !first {
+			strings.write_string(&sf, " ")
+		}
+		first = false
+		switch lower_word {
+		case "passed", "pass":
+			strings.write_string(
+				&sf,
+				fmt.aprintf("%s%s%s", GREEN, word, RESET, allocator = allocator),
+			)
+			if lower_word == "passed" {
+				summary_started^ = true
+			}
+			break
+		case "fail", "failed":
+			strings.write_string(
+				&sf,
+				fmt.aprintf("%s%s%s", RED, word, RESET, allocator = allocator),
+			)
+			if lower_word == "failed" {
+				summary_started^ = true
+			}
+			break
+		case "warning", "warn":
+			strings.write_string(
+				&sf,
+				fmt.aprintf("%s%s%s", yellow, word, RESET, allocator = allocator),
+			)
+			if lower_word == "failed" {
+				summary_started^ = true
+			}
+		case:
+			optional := optional_word(opt, lower_word)
 
-	if len(split) > 1 {
-		last_part = split[1]
+			if len(optional) > 0 {
+				strings.write_string(
+					&sf,
+					fmt.aprintf("%s%s%s", YELLOW, word, RESET, allocator = allocator),
+				)
+				break
+			}
+			if (strings.contains(word, "passed")) {
+				passed_split := strings.split(word, "passed")
+				strings.write_string(&sf, passed_split[0])
+				strings.write_string(
+					&sf,
+					fmt.aprintf("%s%s%s", GREEN, "passed", RESET, allocator = allocator),
+				)
+				strings.write_string(&sf, passed_split[1])
+				summary_started^ = true
+				delete(passed_split)
+				break
+			}
+			if (strings.contains(word, "failed")) {
+				failed_split := strings.split(word, "failed")
+				strings.write_string(&sf, failed_split[0])
+				strings.write_string(
+					&sf,
+					fmt.aprintf("%s%s%s", RED, "failed", RESET, allocator = allocator),
+				)
+				strings.write_string(&sf, failed_split[1])
+				summary_started^ = true
+				delete(failed_split)
+				break
+			}
+			strings.write_string(&sf, word)
+			break
+		}
+
+		delete(lower_word)
 	}
 
-	color_target := colorize_callback(target)
-	defer delete(color_target)
 
-	return strings.join([]string{split[0], color_target, last_part}, "")
+	delete(split)
+	return strings.to_string(sf)
 }
+
 
 initial_check :: proc() -> ([]string, bool) {
 	if os.is_tty(os.stdin) {
