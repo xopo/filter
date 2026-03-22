@@ -1,36 +1,33 @@
 Running tests...
-[madge]... warning about some file 
-Start testing
 
 PASS  tests/math/add.test.js
-│ ✓ add(1, 2) returns 3 (3 ms)
-│ ✓ add(-1, 5) returns 4
+  ✓ add(1, 2) returns 3 (3 ms)
+  ✓ add(-1, 5) returns 4
 
 PASS  tests/math/multiply.test.js
-│ ✓ multiply(2, 3) returns 6
+  ✓ multiply(2, 3) returns 6
 
 WARN  tests/utils/config.test.js
-│ ⚠ deprecated config key "timeout"
+  ⚠ deprecated config key "timeout"
 
 FAIL  tests/user/login.test.js
-│ ✕ should reject invalid password
-│
-│ ● should reject invalid password
-│ │
-│ │ Expected: true
-│ │ Received: false
-│ │
-│ │ at login.test.js:24:10 bibi
+  ✕ should reject invalid password
+  ✕ should reject invalid password
+
+ Expected: true
+ Received: false
+
+ at login.test.js:24:10 bibi
 
 TypeError: Cannot read properties of undefined (reading 'password')
-│   at auth.js:45:15
-│   at login.test.js:20:5
+  at auth.js:45:15
+  at login.test.js:20:5
 
 console.log
-│ Attempting login for user: admin
+Attempting login for user: admin
 
 console.warn
-│ Missing optional field: rememberMe
+Missing optional field: rememberMe
 
 Test Suites: 1 failed, 3 passed, 4 total
 Tests:       1 failed, 4 passed, 5 total
@@ -40,34 +37,33 @@ Time:        1.72 s`
 Running tests...
 
 PASS  tests/math/add.test.js
-│ ✓ add(1, 2) returns 3 (3 ms)
-│ ✓ add(-1, 5) returns 4
+  ✓ add(1, 2) returns 3 (3 ms)
+  ✓ add(-1, 5) returns 4
 
 PASS  tests/math/multiply.test.js
-│ ✓ multiply(2, 3) returns 6
+  ✓ multiply(2, 3) returns 6
 
 WARN  tests/utils/config.test.js
-│ ⚠ deprecated config key "timeout"
+  ⚠ deprecated config key "timeout"
 
 FAIL  tests/user/login.test.js
-│ ✕ should reject invalid password
-│
-│ ● should reject invalid password
-│ │
-│ │ Expected: true
-│ │ Received: false
-│ │
-│ │ at login.test.js:24:10 bibi
+  ✕ should reject invalid password
+  ✕ should reject invalid password
+
+ Expected: true
+ Received: false
+
+ at login.test.js:24:10 bibi
 
 TypeError: Cannot read properties of undefined (reading 'password')
-│   at auth.js:45:15
-│   at login.test.js:20:5
+  at auth.js:45:15
+  at login.test.js:20:5
 
 console.log
-│ Attempting login for user: admin
+Attempting login for user: admin
 
 console.warn
-│ Missing optional field: rememberMe
+Missing optional field: rememberMe
 
 Test Suites: 1 failed, 3 passed, 4 total
 Tests:       1 failed, 4 passed, 5 total

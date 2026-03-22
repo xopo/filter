@@ -32,11 +32,11 @@ main :: proc() {
 		lower_line := strings.to_lower(line)
 		if !should_format(lower_line, all_opt) {
 			if strings.contains(line, end) {
-				fmt.printf("\n%s\n%s\n\n", line, strings.repeat("-", 50))
+        print_end_summary(line)
 				once = false
 				summary_started = false
 			} else {
-				fmt.printf("\r%s2K%s", ESC, line)
+				print_on_same_line(line)
 			}
 
 			delete(lower_line)
@@ -48,7 +48,7 @@ main :: proc() {
 		// separator for summary
 		if once == false && summary_started == true {
 			once = true
-			fmt.printf("\n%s\n", strings.repeat("-", 50))
+			print_separator()
 		}
 
 		if formated_line != "" {
