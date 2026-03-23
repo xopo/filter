@@ -41,14 +41,26 @@ Warnings:    1
 Time:        1.72 s`
 
 
-Test_Case :: struct {
+Test_Color :: struct {
 	input, expecting: string,
+}
+Test_Boundary :: struct {
+	input:     string,
+	expecting: bool,
 }
 
 @(test)
-test_pass_coloring2 :: proc(t: ^testing.T) {
+test_should_format :: proc(t: ^testing.T) {
+	test_cases := []Test_Boundary{{"PASS", true}, {"passing", false}}
+	for test in test_cases {
+		result := should_format(test.input, default_opt[:])
+		testing.expect_value(t, result, test.expecting)
+	}
+}
 
-	test_cases := []Test_Case {
+@(test)
+test_pass_coloring :: proc(t: ^testing.T) {
+	test_cases := []Test_Color {
 		{"PASS", fmt.tprintf("%sPASS%s", GREEN, RESET)},
 		{
 			"PASS tests/math/add.test.js",

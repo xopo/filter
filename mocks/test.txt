@@ -9,6 +9,7 @@
   PASS  tests/utils/format.test.js
   ✓ format_number(1000) returns "1,000" (1 ms)
   ✓ format_number(1000000) returns "1,000,000"
+    warning [some string] is deprecated
 
   PASS  [unit] tests/string/reverse.test.js
   ✓ reverse("hello") returns "olleh" (2 ms)

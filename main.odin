@@ -25,35 +25,39 @@ main :: proc() {
 
 	summary_started: bool
 	once: bool
+	prev_ephemere: bool
 
 	for bufio.scan(&s) {
-		line := bufio.scanner_text(&s)
+		scan := bufio.scanner_text(&s)
+		split_scan := strings.split(scan, "\n")
+		// fmt.printf("** found %d split in %q", len(split_scan), scan)
+		for line in split_scan {
+			lower_line := strings.to_lower(line)
+			if !should_format(lower_line, all_opt) {
+				if strings.contains(line, end) {
+					print_end_summary(line)
+					once = false
+					summary_started = false
+				} else {
+					ephemere_print(line, &prev_ephemere)
+				}
 
-		lower_line := strings.to_lower(line)
-		if !should_format(lower_line, all_opt) {
-			if strings.contains(line, end) {
-        print_end_summary(line)
-				once = false
-				summary_started = false
-			} else {
-				print_on_same_line(line)
+				delete(lower_line)
+				continue
+			}
+			formated_line := format_line(strings.trim_space(line), &summary_started, opt)
+
+			// separator for summary
+			if once == false && summary_started == true {
+				once = true
+				print_separator()
 			}
 
-			delete(lower_line)
-			continue
-		}
-
-		formated_line := format_line(strings.trim_space(line), &summary_started, opt)
-
-		// separator for summary
-		if once == false && summary_started == true {
-			once = true
-			print_separator()
-		}
-
-		if formated_line != "" {
-			fmt.println(formated_line)
-			delete(formated_line)
+			if formated_line != "" {
+				prev_ephemere = false
+				fmt.printf("%s\n", formated_line)
+				delete(formated_line)
+			}
 		}
 	}
 }
@@ -63,23 +67,31 @@ should_format :: proc(line: string, opt: []string) -> bool {
 	for o in opt {
 		// if the line is exactly one word
 		if o == line {
+			fmt.println("-- return true, 1")
 			return true
 		}
 
-		start_opt := fmt.aprintf("%s ", o)
-		if strings.contains(line, start_opt) {
-			delete(start_opt)
-			return true
-		}
+		pos := 0
 
-		end_opt := fmt.aprintf(" %s", o)
-		if strings.contains(line, end_opt) {
-			delete(end_opt)
-			return true
+		for {
+			i := strings.index(line[pos:], o)
+			if i < 0 do break
+
+			i += pos
+			end := i + len(o)
+
+			if end >= len(line) || is_boundary(line[end]) {
+				return true
+			}
 		}
 	}
 
 	return false
+}
+
+is_boundary :: proc(b: byte) -> bool {
+	fmt.printf("check boundary: %c\n", b)
+	return true
 }
 
 combineOptions :: proc(first, second: []string, allocator := context.temp_allocator) -> []string {
@@ -149,33 +161,30 @@ format_line :: proc(
 		}
 		first = false
 		switch lower_word {
-		case "passed", "pass":
+
+		case "pass", "fail", "warn":
+			color := lower_word == "pass" ? GREEN : lower_word == "fail" ? RED : YELLOW
 			strings.write_string(
 				&sf,
-				fmt.aprintf("%s%s%s", GREEN, word, RESET, allocator = allocator),
+				fmt.aprintf("%s%s%s", color, word, RESET, allocator = allocator),
 			)
-			if lower_word == "passed" {
-				summary_started^ = true
-			}
 			break
-		case "fail", "failed":
+
+		case "expected", "expected:", "received", "received:":
+			word_to_color := word
+			has_suffix := strings.has_suffix(word, ":")
+			if has_suffix {
+				word_to_color = word[:len(word) - 1]
+			}
 			strings.write_string(
 				&sf,
-				fmt.aprintf("%s%s%s", RED, word, RESET, allocator = allocator),
+				fmt.aprintf("%s%s%s", YELLOW, word_to_color, RESET, allocator = allocator),
 			)
-			if lower_word == "failed" {
-				summary_started^ = true
+			if has_suffix {
+				strings.write_string(&sf, ":")
 			}
 			break
-		case "warning", "warn":
-			strings.write_string(
-				&sf,
-				fmt.aprintf("%s%s%s", YELLOW, word, RESET, allocator = allocator),
-			)
-			if lower_word == "warning" {
-				summary_started^ = true
-			}
-			break
+
 		case:
 			optional := optional_word(opt, lower_word)
 
@@ -186,60 +195,23 @@ format_line :: proc(
 				)
 				break
 			}
-			if strings.has_prefix(lower_word, "expected:") ||
-			   strings.has_prefix(lower_word, "expected") {
-				word_to_color := word
-				if strings.has_suffix(word, ":") {
-					word_to_color = word[:len(word) - 1]
-				}
-				strings.write_string(
-					&sf,
-					fmt.aprintf("%s%s%s", YELLOW, word_to_color, RESET, allocator = allocator),
-				)
-				if strings.has_suffix(word, ":") {
-					strings.write_string(&sf, ":")
-				}
-				break
-			}
-			if strings.has_prefix(lower_word, "received:") ||
-			   strings.has_prefix(lower_word, "received") {
-				word_to_color := word
-				if strings.has_suffix(word, ":") {
-					word_to_color = word[:len(word) - 1]
-				}
-				strings.write_string(
-					&sf,
-					fmt.aprintf("%s%s%s", YELLOW, word_to_color, RESET, allocator = allocator),
-				)
-				if strings.has_suffix(word, ":") {
-					strings.write_string(&sf, ":")
-				}
-				break
-			}
-			if (strings.contains(word, "passed")) {
-				passed_split := strings.split(word, "passed")
+
+			passed := strings.contains(lower_word, "passed")
+			if passed || strings.contains(lower_word, "failed") {
+				sp := passed ? "passed" : "failed"
+				color := passed ? GREEN : RED
+				passed_split := strings.split(word, sp)
 				strings.write_string(&sf, passed_split[0])
 				strings.write_string(
 					&sf,
-					fmt.aprintf("%s%s%s", GREEN, "passed", RESET, allocator = allocator),
+					fmt.aprintf("%s%s%s", color, sp, RESET, allocator = allocator),
 				)
 				strings.write_string(&sf, passed_split[1])
 				summary_started^ = true
 				delete(passed_split)
 				break
 			}
-			if (strings.contains(word, "failed")) {
-				failed_split := strings.split(word, "failed")
-				strings.write_string(&sf, failed_split[0])
-				strings.write_string(
-					&sf,
-					fmt.aprintf("%s%s%s", RED, "failed", RESET, allocator = allocator),
-				)
-				strings.write_string(&sf, failed_split[1])
-				summary_started^ = true
-				delete(failed_split)
-				break
-			}
+
 			strings.write_string(&sf, word)
 			break
 		}
